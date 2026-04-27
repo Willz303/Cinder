@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinder - A note is burning...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 30% 20%, #1a1008, #0a0704);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', 'Segoe UI', monospace;
+            padding: 20px;
+        }
+
+        .notepad {
+            background: #fef3d6;
+            background-image: linear-gradient(#e4d5b0 1px, transparent 1px);
+            background-size: 100% 28px;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 12px 12px 8px 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px #d4b87a inset, 0 0 0 2px #fff6e5 inset;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .burn-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: inherit;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%);
+            mix-blend-mode: multiply;
+            transition: all 0.1s;
+        }
+
+        .note-header {
+            background: #d9c48b;
+            padding: 12px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid #b89a5a;
+        }
+
+        .cinder-brand {
+            font-weight: bold;
+            color: #5a3e1f;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .timer-visual {
+            font-family: monospace;
+            background: #2e2416;
+            padding: 4px 10px;
+            border-radius: 50px;
+            color: #ff9944;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .note-content {
+            padding: 32px 28px;
+            min-height: 300px;
+            font-size: 18px;
+            line-height: 28px;
+            color: #2e2416;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: inherit;
+        }
+
+        .burn-bar {
+            height: 6px;
+            background: #ff6a2e;
+            width: 100%;
+            border-radius: 0 0 8px 8px;
+            transition: width linear;
+        }
+
+        .ash-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8a7a66;
+            font-size: 24px;
+            letter-spacing: 4px;
+            font-weight: bold;
+        }
+
+        .flame-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 32px;
+            opacity: 0.6;
+            animation: burnAnim 1s infinite alternate;
+        }
+
+        @keyframes burnAnim {
+            0% { opacity: 0.4; text-shadow: 0 0 2px orange; }
+            100% { opacity: 1; text-shadow: 0 0 12px red; }
+        }
+
+        .burning-edge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, #ff7b2c 100%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            border-radius: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="notepad" id="notepad">
+        <div class="note-header">
+            <span class="cinder-brand">🔥 CINDER</span>
+            <span class="timer-visual" id="timerDisplay">--</span>
+        </div>
+        <div id="noteBody" class="note-content"></div>
+        <div class="burn-bar" id="burnBar" style="width: 100%"></div>
+    </div>
+    <div class="flame-icon">🔥</div>
+
+    <script>
+        (function() {
+            // Get data from URL fragment
+            const hash = window.location.hash.substring(1); // remove #
+            const params = new URLSearchParams(hash);
+            let note = params.get('note');
+            let ttl = parseInt(params.get('ttl'));
+
+            // Defaults if missing
+            if (!note) note = "This note has no message.";
+            if (isNaN(ttl)) ttl = 5;
+            
+            // Decode the note
+            try {
+                note = decodeURIComponent(note);
+            } catch(e) {
+                // fallback
+                note = "Message could not be decoded.";
+            }
+
+            const noteBody = document.getElementById('noteBody');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const burnBar = document.getElementById('burnBar');
+            const notepad = document.getElementById('notepad');
+
+            // Display note
+            noteBody.innerText = note;
+            
+            let remaining = ttl;
+            timerDisplay.innerText = `${remaining}s`;
+            burnBar.style.width = '100%';
+            
+            // Add a little burnt edge effect on mouse move
+            notepad.addEventListener('mousemove', (e) => {
+                const rect = notepad.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                notepad.style.setProperty('--mouse-x', `${x}%`);
+                notepad.style.setProperty('--mouse-y', `${y}%`);
+            });
+            
+            const interval = setInterval(() => {
+                remaining--;
+                timerDisplay.innerText = `${remaining}s`;
+                // Update burn bar: percentage remaining
+                const percent = (remaining / ttl) * 100;
+                burnBar.style.width = `${percent}%`;
+                
+                // Change color as it burns
+                if (percent < 30) {
+                    burnBar.style.background = '#aa3300';
+                    timerDisplay.style.color = '#ff6666';
+                }
+                
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    // THE SELF DESTRUCT
+                    noteBody.style.transition = 'opacity 0.8s';
+                    noteBody.style.opacity = '0';
+                    setTimeout(() => {
+                        noteBody.innerHTML = '<div class="ash-message">✧ ASH ✧<br><span style="font-size:12px;">this note has self‑destructed</span></div>';
+                        noteBody.style.opacity = '1';
+                        timerDisplay.innerText = '💀';
+                        burnBar.style.background = '#2e2416';
+                        burnBar.style.width = '0%';
+                        notepad.style.background = '#3a3028';
+                    }, 800);
+                }
+            }, 1000);
+            
+            // Prevent back/forward cache issues
+            window.addEventListener('pageshow', () => {
+                if (remaining <= 0) {
+                    noteBody.innerHTML = '<div class="ash-message">✧ ASH ✧<br><span style="font-size:12px;">this note has self‑destructed</span></div>';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
