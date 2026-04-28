@@ -152,15 +152,15 @@
 
       if (remaining <= 0) {
         clearInterval(interval);
-        timerEl.textContent = '💀';
+        // NO TEXT CHANGE - timer stays at 0s, then whole card vanishes
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // Pure burn - NO ASH TEXT
+        // Pure visual burn only
         burnOverlayEl.style.opacity = '1';
         noteEl.style.opacity = '0';
         
-        // Ash particles only
+        // Ash particles
         for (let i = 0; i < 45; i++) {
           const particle = document.createElement('div');
           particle.className = 'particle';
@@ -170,7 +170,7 @@
           particlesEl.appendChild(particle);
         }
         
-        // 3D disintegration
+        // 3D paper destruction
         setTimeout(() => {
           cardEl.classList.add('burned');
         }, 400);
