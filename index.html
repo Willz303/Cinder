@@ -26,15 +26,11 @@
       box-shadow: 0 20px 50px rgba(0,0,0,.5);
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 1s ease-out;
+      transition: all 2s ease-out;
     }
-    .card.burning {
-      animation: paperBurn 2s ease-out forwards;
-    }
-    @keyframes paperBurn {
-      0% { transform: rotateX(0deg) rotateY(0deg) scale(1); }
-      50% { transform: rotateX(45deg) rotateY(-30deg) rotateZ(15deg) scale(0.95); }
-      100% { transform: rotateX(90deg) rotateY(-60deg) rotateZ(90deg) scale(0.3) translateZ(-200px); opacity: 0; }
+    .card.burned {
+      transform: rotateX(90deg) rotateY(-60deg) rotateZ(90deg) scale(0.2) translateZ(-200px);
+      opacity: 0;
     }
     .topbar {
       display: flex;
@@ -60,6 +56,7 @@
       background-size: 100% 30px;
       position: relative;
       overflow: hidden;
+      transition: opacity 1s;
     }
     .burn-overlay {
       position: absolute;
@@ -67,9 +64,9 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(circle at bottom right, transparent 40%, rgba(255,80,0,0.6) 70%);
+      background: radial-gradient(circle at 70% 80%, transparent 30%, rgba(255,80,0,0.7) 60%);
       opacity: 0;
-      transition: opacity 0.5s;
+      transition: opacity 0.8s;
       pointer-events: none;
     }
     .bar {
@@ -79,21 +76,6 @@
       transition: width 1s linear, background 1s linear;
     }
     .low { background: #9c2f10; }
-    .ash {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #7b6a59;
-      font-size: 32px;
-      letter-spacing: 6px;
-      font-weight: bold;
-      opacity: 0;
-      animation: ashFade 1s 1.5s forwards;
-    }
-    @keyframes ashFade {
-      to { opacity: 1; }
-    }
     .particles {
       position: absolute;
       top: 0;
@@ -101,19 +83,26 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
+      opacity: 0;
     }
     .particle {
       position: absolute;
-      width: 4px;
-      height: 4px;
-      background: #8a7a66;
+      width: 3px;
+      height: 3px;
+      background: radial-gradient(circle, #8a7a66, transparent);
       border-radius: 50%;
       opacity: 0;
-      animation: floatAway 2s forwards;
+      animation: floatAway 2.5s forwards;
     }
     @keyframes floatAway {
-      0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0.8; }
-      100% { transform: translateY(-100px) translateX(50px) rotate(360deg) scale(0); opacity: 0; }
+      0% { 
+        transform: translateY(0) translateX(0) rotate(0deg) scale(1); 
+        opacity: 0.9; 
+      }
+      100% { 
+        transform: translateY(-120px) translateX(60px) rotate(720deg) scale(0); 
+        opacity: 0; 
+      }
     }
   </style>
 </head>
@@ -125,7 +114,6 @@
     </div>
     <div class="body" id="note">Loading...</div>
     <div class="burn-overlay" id="burnOverlay"></div>
-    <div class="ash" id="ash">ASH</div>
     <div class="particles" id="particles"></div>
     <div class="bar" id="bar"></div>
   </div>
@@ -137,7 +125,6 @@
     const barEl = document.getElementById('bar');
     const cardEl = document.getElementById('card');
     const burnOverlayEl = document.getElementById('burnOverlay');
-    const ashEl = document.getElementById('ash');
     const particlesEl = document.getElementById('particles');
 
     let note = params.get('note') || 'No note found.';
@@ -168,19 +155,25 @@
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // Start the 3D burn animation
+        // Burn sequence: no ash text!
         burnOverlayEl.style.opacity = '1';
-        cardEl.classList.add('burning');
+        noteEl.style.opacity = '0';
         
-        // Create ash particles
-        for (let i = 0; i < 20; i++) {
+        // More ash particles
+        for (let i = 0; i < 35; i++) {
           const particle = document.createElement('div');
           particle.className = 'particle';
-          particle.style.left = Math.random() * 100 + '%';
-          particle.style.top = Math.random() * 100 + '%';
-          particle.style.animationDelay = Math.random() * 0.5 + 's';
+          particle.style.left = (Math.random() * 80 + 10) + '%';
+          particle.style.top = (Math.random() * 70 + 15) + '%';
+          particle.style.animationDelay = (Math.random() * 0.3) + 's';
           particlesEl.appendChild(particle);
         }
+        particlesEl.style.opacity = '1';
+        
+        // 3D paper fizzle away
+        setTimeout(() => {
+          cardEl.classList.add('burned');
+        }, 300);
         
         return;
       }
