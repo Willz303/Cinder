@@ -11,18 +11,17 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      font-family: Courier New, monospace;
-      background: radial-gradient(circle at top, #2a160c, #090603 70%);
-      color: #2b1c10;
       padding: 20px;
+      font-family: Courier New, monospace;
+      background: radial-gradient(circle at top, #28150b, #090603 70%);
     }
     .card {
       width: min(640px, 100%);
-      background: #f7e7be;
-      border: 2px solid #c8a86a;
+      background: #f6e3b7;
+      border: 2px solid #c6a15d;
       border-radius: 14px;
-      box-shadow: 0 20px 50px rgba(0,0,0,.45);
       overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.5);
     }
     .topbar {
       display: flex;
@@ -30,33 +29,36 @@
       gap: 12px;
       padding: 12px 16px;
       background: #dbc48e;
-      border-bottom: 1px solid #b89455;
+      border-bottom: 1px solid #b58e4e;
+      color: #4c3419;
       font-weight: bold;
     }
     .body {
+      min-height: 300px;
       padding: 28px;
-      min-height: 280px;
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.6;
       font-size: 18px;
-      background-image: linear-gradient(#ead8b0 1px, transparent 1px);
+      color: #2f2011;
+      background-image: linear-gradient(#e4d0a1 1px, transparent 1px);
       background-size: 100% 30px;
     }
-    .ash {
-      text-align: center;
-      color: #7d6a55;
-      font-size: 28px;
-      letter-spacing: 4px;
-      padding: 80px 20px;
-    }
     .bar {
+      width: 100%;
       height: 8px;
       background: #ff7a2f;
-      width: 100%;
       transition: width 1s linear, background 1s linear;
     }
-    .low { background: #9e2f10; }
+    .low { background: #9c2f10; }
+    .ash {
+      text-align: center;
+      color: #7b6a59;
+      font-size: 28px;
+      letter-spacing: 4px;
+      padding: 90px 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -70,42 +72,46 @@
   </div>
 
   <script>
-    const hash = new URLSearchParams(location.hash.slice(1));
+    const params = new URLSearchParams(location.hash.slice(1));
     const noteEl = document.getElementById('note');
     const timerEl = document.getElementById('timer');
     const barEl = document.getElementById('bar');
 
-    let note = hash.get('note') || 'No note found.';
-    let ttl = parseInt(hash.get('ttl'), 10);
+    let note = params.get('note') || 'No note found.';
+    let ttl = parseInt(params.get('ttl'), 10);
 
-    if (!Number.isFinite(ttl) || ttl < 3) ttl = 5;
+    if (!Number.isFinite(ttl)) ttl = 5;
+    if (ttl < 3) ttl = 3;
     if (ttl > 30) ttl = 30;
 
-    try { note = decodeURIComponent(note); } catch { note = 'Could not decode note.'; }
+    try {
+      note = decodeURIComponent(note);
+    } catch {
+      note = 'Could not decode note.';
+    }
 
     let remaining = ttl;
+
     noteEl.textContent = note;
     timerEl.textContent = remaining + 's';
     barEl.style.width = '100%';
 
-    const tick = () => {
-      remaining -= 1;
+    const interval = setInterval(() => {
+      remaining--;
 
       if (remaining <= 0) {
+        clearInterval(interval);
         timerEl.textContent = 'ASH';
         noteEl.innerHTML = '<div class="ash">ASH</div>';
         barEl.style.width = '0%';
         barEl.classList.add('low');
-        clearInterval(interval);
         return;
       }
 
       timerEl.textContent = remaining + 's';
       barEl.style.width = (remaining / ttl * 100) + '%';
       if (remaining <= 2) barEl.classList.add('low');
-    };
-
-    const interval = setInterval(tick, 1000);
+    }, 1000);
   </script>
 </body>
 </html>
