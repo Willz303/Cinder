@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cinder</title>
   <style>
     * { box-sizing: border-box; }
@@ -96,14 +96,8 @@
       animation: floatAway 3s forwards;
     }
     @keyframes floatAway {
-      0% { 
-        transform: translateY(0) translateX(0) rotate(0deg) scale(1); 
-        opacity: 0.9; 
-      }
-      100% { 
-        transform: translateY(-150px) translateX(80px) rotate(1080deg) scale(0); 
-        opacity: 0; 
-      }
+      0% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); opacity: 0.9; }
+      100% { transform: translateY(-150px) translateX(80px) rotate(1080deg) scale(0); opacity: 0; }
     }
   </style>
 </head>
@@ -152,15 +146,12 @@
 
       if (remaining <= 0) {
         clearInterval(interval);
-        // NO TEXT CHANGE - timer stays at 0s, then whole card vanishes
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // Pure visual burn only
         burnOverlayEl.style.opacity = '1';
         noteEl.style.opacity = '0';
         
-        // Ash particles
         for (let i = 0; i < 45; i++) {
           const particle = document.createElement('div');
           particle.className = 'particle';
@@ -170,11 +161,9 @@
           particlesEl.appendChild(particle);
         }
         
-        // 3D paper destruction
         setTimeout(() => {
           cardEl.classList.add('burned');
         }, 400);
-        
         return;
       }
 
