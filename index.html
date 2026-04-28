@@ -114,8 +114,19 @@
   </div>
 
   <script>
-    // Handle empty URL gracefully
     const params = new URLSearchParams(location.hash.slice(1));
+    
+    // FIXED: Clear burned flag if there's a valid note in URL
+    if (params.get('note')) {
+      localStorage.removeItem('cinderBurned');
+    }
+    
+    // Check burned flag (only blocks if no note in URL)
+    if (!params.get('note') && localStorage.getItem('cinderBurned') === 'true') {
+      document.body.innerHTML = '';
+      return;
+    }
+
     const noteEl = document.getElementById('note');
     const timerEl = document.getElementById('timer');
     const barEl = document.getElementById('bar');
@@ -123,17 +134,8 @@
     const burnOverlayEl = document.getElementById('burnOverlay');
     const particlesEl = document.getElementById('particles');
 
-    let note = params.get('note');
+    let note = params.get('note') || 'No note found.';
     let ttl = parseInt(params.get('ttl'), 10);
-
-    // Graceful empty URL handling
-    if (!note) {
-      noteEl.textContent = 'Send someone a Cinder link to burn a secret message here.';
-      timerEl.textContent = 'READY';
-      barEl.style.width = '100%';
-      barEl.style.background = '#4a8a4a';
-      return;
-    }
 
     if (!Number.isFinite(ttl)) ttl = 5;
     if (ttl < 3) ttl = 3;
@@ -146,9 +148,7 @@
     }
 
     let remaining = ttl;
-    let burned = false;
 
-    // Show note immediately
     noteEl.textContent = note;
     timerEl.textContent = remaining + 's';
     barEl.style.width = '100%';
@@ -156,15 +156,16 @@
     const interval = setInterval(() => {
       remaining--;
 
-      if (remaining <= 0 && !burned) {
-        burned = true;
+      if (remaining <= 0) {
         clearInterval(interval);
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // Clear URL fragment (anti-refresh)
+        // BULLETPROOF PROTECTION
+        localStorage.setItem('cinderBurned', 'true');
         history.replaceState(null, null, window.location.pathname);
         
+        // Visual destruction
         burnOverlayEl.style.opacity = '1';
         noteEl.style.opacity = '0';
         
@@ -180,11 +181,13 @@
         setTimeout(() => {
           cardEl.classList.add('burned');
         }, 400);
-      } else if (remaining > 0) {
-        timerEl.textContent = remaining + 's';
-        barEl.style.width = (remaining / ttl * 100) + '%';
-        if (remaining <= 2) barEl.classList.add('low');
+        
+        return;
       }
+
+      timerEl.textContent = remaining + 's';
+      barEl.style.width = (remaining / ttl * 100) + '%';
+      if (remaining <= 2) barEl.classList.add('low');
     }, 1000);
   </script>
 </body>
