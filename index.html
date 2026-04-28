@@ -191,18 +191,18 @@
     
     // Create a unique key for this exact URL (including note content)
     // This ensures the same link cannot be viewed twice in the same browser session.
-    const viewKey = 'cinder_viewed_' + encodeURIComponent(urlFragment);
-    
-    if (sessionStorage.getItem(viewKey) === 'true') {
+// ONE-TIME PER TAB: Use generic key for this domain
+const viewKey = 'cinder_burned_this_tab';
+
+if (sessionStorage.getItem(viewKey) === 'true') {
       // Already viewed once -> permanent black void
       document.body.innerHTML = '';
       document.body.style.background = '#000000';
       return;
     }
     
-    // Mark as viewed immediately! Even before displaying.
-    // This prevents the same link from working again.
-    sessionStorage.setItem(viewKey, 'true');
+    // Mark this TAB as burned (blocks all future pastes)
+sessionStorage.setItem(viewKey, 'true');
     
     // --- proceed to display the note normally ---
     const params = new URLSearchParams(urlFragment);
