@@ -114,6 +114,7 @@
   </div>
 
   <script>
+    // Handle empty URL gracefully
     const params = new URLSearchParams(location.hash.slice(1));
     const noteEl = document.getElementById('note');
     const timerEl = document.getElementById('timer');
@@ -122,8 +123,17 @@
     const burnOverlayEl = document.getElementById('burnOverlay');
     const particlesEl = document.getElementById('particles');
 
-    let note = params.get('note') || 'No note found.';
+    let note = params.get('note');
     let ttl = parseInt(params.get('ttl'), 10);
+
+    // Graceful empty URL handling
+    if (!note) {
+      noteEl.textContent = 'Send someone a Cinder link to burn a secret message here.';
+      timerEl.textContent = 'READY';
+      barEl.style.width = '100%';
+      barEl.style.background = '#4a8a4a';
+      return;
+    }
 
     if (!Number.isFinite(ttl)) ttl = 5;
     if (ttl < 3) ttl = 3;
@@ -138,7 +148,7 @@
     let remaining = ttl;
     let burned = false;
 
-    // IMMEDIATELY show note (no loading stuck)
+    // Show note immediately
     noteEl.textContent = note;
     timerEl.textContent = remaining + 's';
     barEl.style.width = '100%';
@@ -152,7 +162,7 @@
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // SIMPLIFIED ANTI-REFRESH: Just clear URL
+        // Clear URL fragment (anti-refresh)
         history.replaceState(null, null, window.location.pathname);
         
         burnOverlayEl.style.opacity = '1';
