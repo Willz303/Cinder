@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Cinder • vanishing note</title>
+  <title>Cinder • one-time note</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      user-select: none; /* avoid accidental selection, keeps clean */
+      user-select: none;
     }
 
     body {
@@ -18,12 +18,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Courier New', 'SF Mono', 'Segoe UI Mono', monospace;
+      font-family: 'Courier New', 'SF Mono', monospace;
       padding: 1.5rem;
       perspective: 1400px;
     }
 
-    /* main paper card */
     .cinder-card {
       width: 100%;
       max-width: 700px;
@@ -36,7 +35,6 @@
       opacity: 1;
     }
 
-    /* 3D burning state: twist, shrink, turn to ash */
     .cinder-card.burned-away {
       transform: rotateX(105deg) rotateY(-25deg) rotateZ(25deg) scale(0.08);
       opacity: 0;
@@ -45,7 +43,6 @@
       transition: transform 1.6s cubic-bezier(0.34, 1.2, 0.55, 1), opacity 1.2s ease;
     }
 
-    /* header — burnt paper style */
     .note-header {
       display: flex;
       justify-content: space-between;
@@ -56,7 +53,6 @@
       border-bottom: 2px solid #cfb175;
       color: #3d2b18;
       font-weight: bold;
-      letter-spacing: 1px;
     }
 
     .brand {
@@ -79,10 +75,8 @@
       font-weight: bold;
       color: #ffb26e;
       font-size: 1rem;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.2), 0 1px 0 #ffe3b3;
     }
 
-    /* notebook paper style with lines */
     .note-body {
       padding: 2rem 2rem 2.5rem 2rem;
       min-height: 320px;
@@ -91,29 +85,19 @@
       color: #2f2419;
       white-space: pre-wrap;
       word-break: break-word;
-      background: repeating-linear-gradient(
-        #fff3e0 0px,
-        #fff3e0 27px,
-        #eadbbe 28px
-      );
-      font-family: 'Courier New', 'Andale Mono', monospace;
+      background: repeating-linear-gradient(#fff3e0 0px, #fff3e0 27px, #eadbbe 28px);
+      font-family: 'Courier New', monospace;
       transition: opacity 0.9s ease-out;
     }
 
-    /* burn bar - ember progress */
     .ember-bar {
       width: 100%;
       height: 7px;
       background: #ff8233;
-      transition: width 0.05s linear; /* smooth per second update */
+      transition: width 0.05s linear;
       border-radius: 0 0 24px 24px;
     }
 
-    .ember-bar.ash-end {
-      background: #5a3e2a;
-    }
-
-    /* glowing burn overlay (fire eating the paper) */
     .burn-overlay-fire {
       position: absolute;
       top: 0;
@@ -129,7 +113,6 @@
       z-index: 5;
     }
 
-    /* particle sparks container */
     .sparks {
       position: absolute;
       top: 0;
@@ -148,62 +131,20 @@
       height: 4px;
       background: radial-gradient(circle, #ffa859, #ff4d0d);
       border-radius: 50%;
-      filter: blur(0.6px);
       opacity: 0;
       animation: cinderSpark 1.6s forwards ease-out;
     }
 
     @keyframes cinderSpark {
-      0% {
-        transform: translateY(0) scale(1);
-        opacity: 0.9;
-      }
-      70% {
-        opacity: 0.6;
-      }
-      100% {
-        transform: translateY(-130px) translateX(50px) rotate(300deg) scale(0);
-        opacity: 0;
-      }
+      0% { transform: translateY(0) scale(1); opacity: 0.9; }
+      100% { transform: translateY(-130px) translateX(50px) rotate(300deg) scale(0); opacity: 0; }
     }
 
-    /* additional floating embers */
-    .ember-particle {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #ff7b2c;
-      border-radius: 60% 40% 70% 30%;
-      filter: blur(1px);
-      opacity: 0;
-      animation: riseAndFade 1.8s forwards;
-    }
-
-    @keyframes riseAndFade {
-      0% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
-      100% { transform: translateY(-180px) translateX(35px) rotate(240deg); opacity: 0; }
-    }
-
-    /* hidden state = pure black (no text, no leftovers) */
-    .void-state {
-      background: black !important;
-    }
-
-    .void-state * {
-      visibility: hidden !important;
-    }
-
-    /* layout wrapper for relative positioning */
     .card-wrapper {
       position: relative;
       width: 100%;
       max-width: 720px;
       margin: 0 auto;
-    }
-
-    /* transition blocker for refresh */
-    .hidden-forever {
-      display: none;
     }
   </style>
 </head>
@@ -211,10 +152,7 @@
 <div class="card-wrapper" id="appRoot">
   <div class="cinder-card" id="paperCard">
     <div class="note-header">
-      <div class="brand">
-        <span class="flame-icon">🔥</span>
-        <span>CINDER</span>
-      </div>
+      <div class="brand"><span class="flame-icon">🔥</span><span>CINDER</span></div>
       <div class="timer-badge" id="timerDisplay">—</div>
     </div>
     <div class="note-body" id="noteContent"></div>
@@ -226,49 +164,65 @@
 
 <script>
   (function() {
-    // --------------------------------------------------------------
-    // 1. URL-only validation: no localStorage, no persistent flags.
-    //    Every visit strictly depends on URL fragment.
-    //    If URL has note → fresh reading.
-    //    If URL has no note OR note burned previously? We don't care:
-    //    we rely on #note presence to show content. 
-    //    After burn -> replace URL to PURE path, block reconstruction.
-    // --------------------------------------------------------------
-
-    // get raw fragment without #
-    const rawHash = window.location.hash.substring(1);
-    const urlParams = new URLSearchParams(rawHash);
-    let rawNote = urlParams.get('note');
-    let ttlRaw = urlParams.get('ttl');
-
-    // 🚫 NO LOCALSTORAGE CHECK — complete removal of any persistent flag.
-    // We only decide willingness to show note based on URL.
-    // If there's no "note" param in URL  -> nothing to display -> permanent emptiness.
-    // But the extension ALWAYS sends a note, so it will show until timer ends.
+    // ---------- ONE-TIME FIX: use sessionStorage + URL token to prevent replay ----------
+    // The note can only be viewed ONCE per unique session token.
+    // Generate a random ID for this specific view attempt. The link contains a token.
+    // But the extension DOES NOT include a token yet. So we need to generate one on first view,
+    // and then invalidate it. However, that still allows re-pasting original link.
+    //
+    // TRUE SOLUTION: The extension should generate a random ?id= or #id= that gets invalidated.
+    // But you want NO BACKEND. So we do this: on first view, we mark that specific note+ttl combination
+    // as "viewed" using sessionStorage + a hash of the note content.
+    // BUT careful: same note + same ttl would be blocked even for different senders? Rare edge case.
+    // Better: generate a unique read-once key from the URL + a timestamp derived from first load.
+    // However, simplest: use sessionStorage with a key derived from the entire URL fragment.
+    // When someone pastes the link again, the same key exists => already viewed => void.
+    //
+    // This makes it ONE-TIME per browser session only. If user clears sessionStorage, they could re-read.
+    // But for most threat models, that's fine. To make it truly permanent, we'd need a backend.
     
-    const isNoteMissing = (!rawNote || rawNote.trim() === '');
-    
-    // If URL has empty/invalid note – show pure black void (nothing at all)
-    if (isNoteMissing) {
-      // complete wipe: remove everything, black screen forever
+    const urlFragment = window.location.hash.substring(1);
+    if (!urlFragment || !urlFragment.includes('note=')) {
+      // no note -> black void
       document.body.innerHTML = '';
       document.body.style.background = '#000000';
-      document.body.style.margin = '0';
-      document.body.style.padding = '0';
-      document.body.style.height = '100vh';
-      return; // stop execution, no UI, no resurrection.
+      return;
     }
-
-    // decode and validate note, timer
+    
+    // Create a unique key for this exact URL (including note content)
+    // This ensures the same link cannot be viewed twice in the same browser session.
+    const viewKey = 'cinder_viewed_' + encodeURIComponent(urlFragment);
+    
+    if (sessionStorage.getItem(viewKey) === 'true') {
+      // Already viewed once -> permanent black void
+      document.body.innerHTML = '';
+      document.body.style.background = '#000000';
+      return;
+    }
+    
+    // Mark as viewed immediately! Even before displaying.
+    // This prevents the same link from working again.
+    sessionStorage.setItem(viewKey, 'true');
+    
+    // --- proceed to display the note normally ---
+    const params = new URLSearchParams(urlFragment);
+    let rawNote = params.get('note');
+    let ttlRaw = params.get('ttl');
+    
+    if (!rawNote) {
+      document.body.innerHTML = '';
+      document.body.style.background = '#000000';
+      return;
+    }
+    
     let finalNote = '';
     try {
       finalNote = decodeURIComponent(rawNote);
-    } catch (e) {
-      finalNote = rawNote || '✧ untitled cinder ✧';
+    } catch(e) {
+      finalNote = rawNote;
     }
     
-    // sanitize: if note is empty after decode, treat as missing
-    if (!finalNote || finalNote.trim() === '') {
+    if (!finalNote.trim()) {
       document.body.innerHTML = '';
       document.body.style.background = '#000000';
       return;
@@ -278,7 +232,6 @@
     if (isNaN(duration) || duration < 2) duration = 3;
     if (duration > 30) duration = 30;
     
-    // -------- DOM elements ----------
     const card = document.getElementById('paperCard');
     const timerSpan = document.getElementById('timerDisplay');
     const noteContainer = document.getElementById('noteContent');
@@ -286,86 +239,47 @@
     const fireOverlay = document.getElementById('fireOverlay');
     const sparksContainer = document.getElementById('sparkContainer');
     
-    // Immediately display note (no loading text ever)
     noteContainer.textContent = finalNote;
     let remainingSeconds = duration;
     timerSpan.textContent = `${remainingSeconds}s`;
     progressBar.style.width = '100%';
-    progressBar.style.backgroundColor = '#ff7a2e';
     
-    // small variable to avoid double destruction
     let isDestroyed = false;
     
-    // Helper: generate dynamic fire sparks + ember particles (3D feeling)
     function spawnParticles() {
       if (!sparksContainer) return;
-      // clear any old particles for fresh burst
-      // but we add new ones
-      const particleCount = 58;
-      for (let i = 0; i < particleCount; i++) {
+      for (let i = 0; i < 58; i++) {
         const spark = document.createElement('div');
         spark.classList.add('spark');
-        // random position across whole card area
-        const leftRand = Math.random() * 90 + 5; // % between 5% and 95%
-        const topRand = Math.random() * 80 + 10;
-        spark.style.left = leftRand + '%';
-        spark.style.top = topRand + '%';
-        const size = Math.random() * 6 + 2;
-        spark.style.width = size + 'px';
-        spark.style.height = size + 'px';
+        spark.style.left = (Math.random() * 90 + 5) + '%';
+        spark.style.top = (Math.random() * 80 + 10) + '%';
         spark.style.animationDuration = Math.random() * 1.4 + 0.7 + 's';
-        spark.style.animationDelay = Math.random() * 0.3 + 's';
         sparksContainer.appendChild(spark);
-      }
-      // additional bigger embers (charred paper motes)
-      for (let i = 0; i < 26; i++) {
-        const ember = document.createElement('div');
-        ember.classList.add('ember-particle');
-        ember.style.left = Math.random() * 85 + 10 + '%';
-        ember.style.top = Math.random() * 70 + 15 + '%';
-        ember.style.width = Math.random() * 8 + 3 + 'px';
-        ember.style.animationDuration = Math.random() * 1.2 + 0.8 + 's';
-        sparksContainer.appendChild(ember);
       }
     }
     
-    // BURN FUNCTION: complete destruction, replace URL state so refresh never brings note back
     function executeBurn() {
       if (isDestroyed) return;
       isDestroyed = true;
       
-      // 1. visual effects: fire overlay intensifies
       if (fireOverlay) fireOverlay.style.opacity = '0.95';
       if (noteContainer) noteContainer.style.opacity = '0';
       if (progressBar) {
         progressBar.style.width = '0%';
-        progressBar.classList.add('ash-end');
       }
       
-      // 2. spawn particles (dramatic burning embers)
       spawnParticles();
       
-      // 3. 🔥 CRITICAL: replace the current URL with the CLEAN path (no fragment)
-      //    After this, even if user refreshes, there's no #note parameter.
-      //    The page will see missing note -> permanent black void (refresh-proof).
-      //    This is the golden fix for "refresh brings note back".
+      // Clean the URL so refresh shows nothing
       if (window.history && window.history.replaceState) {
-        // strip everything after ? and # - go to pure path
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState(null, '', cleanUrl);
-      } else {
-        // fallback: set location hash to empty without triggering reload
-        window.location.hash = '';
+        window.history.replaceState(null, '', window.location.pathname);
       }
       
-      // 4. Add 3D burn animation to card (transform to ash)
       if (card) {
         card.classList.add('burned-away');
       }
       
-      // 5. after 900ms, fully turn screen into BLACK VOID: no text, no ghost UI, nothing.
       setTimeout(() => {
-        // complete purge: remove all visible elements, pure black emptiness.
         const rootDiv = document.getElementById('appRoot');
         if (rootDiv) {
           rootDiv.innerHTML = '';
@@ -376,90 +290,27 @@
         document.body.style.margin = '0';
         document.body.style.padding = '0';
         document.body.style.minHeight = '100vh';
-        document.body.style.display = 'flex';
-        // optional: ensure no residual text or white boxes
-        const styleReset = document.createElement('style');
-        styleReset.textContent = '* { visibility: hidden !important; }';
-        document.head.appendChild(styleReset);
       }, 900);
     }
     
-    // Timer logic (with smooth bar animation)
-    let intervalId = null;
-    
-    function startTimer() {
-      if (intervalId) clearInterval(intervalId);
-      intervalId = setInterval(() => {
-        if (isDestroyed) {
-          if (intervalId) clearInterval(intervalId);
-          return;
-        }
-        if (remainingSeconds <= 1) {
-          // time's up: burn everything
-          if (intervalId) clearInterval(intervalId);
-          executeBurn();
-          return;
-        }
-        remainingSeconds--;
-        // update UI
-        if (timerSpan) timerSpan.textContent = `${remainingSeconds}s`;
-        const percent = (remainingSeconds / duration) * 100;
-        if (progressBar) {
-          progressBar.style.width = `${percent}%`;
-          if (percent < 25) {
-            progressBar.style.backgroundColor = '#d93a00';
-          }
-        }
-        // intensify fire overlay as timer runs low
-        if (remainingSeconds <= 2 && fireOverlay) {
-          fireOverlay.style.opacity = '0.4';
-        }
-      }, 1000);
-    }
-    
-    // edge protection: if for any reason note is empty after decode we kill
-    if (!finalNote || finalNote === '') {
-      document.body.innerHTML = '';
-      document.body.style.background = '#000';
-      throw new Error('empty cinder');
-    }
-    
-    // make sure any prior refresh does NOT use leftovers – because we cleared any flag via pure URL
-    // start animation
-    startTimer();
-    
-    // extra "just in case" – if the user clicks back this page might have old url? but replaceState already ensures later
-    // also handle page restore from bfcache: detect and die if no note param after burn due to history navigation
-    window.addEventListener('pageshow', function(event) {
-      // if page is recovered from cache but there's no note param fresh in URL, transform to void.
-      const currentHash = window.location.hash.substring(1);
-      const hashNote = new URLSearchParams(currentHash).get('note');
-      if (!hashNote || hashNote.trim() === '') {
-        // after burn, the URL is clean -> destroy everything
-        if (document.body) {
-          document.body.innerHTML = '';
-          document.body.style.background = '#000000';
-        }
-      } else {
-        // if there's valid note, but timer might have been destroyed before cache -> reinitialize? 
-        // actually because we never store, intervals restart, but we need to ensure not double.
-        if (!isDestroyed && (!intervalId || remainingSeconds > 0)) {
-          // ensure timer integrity: re-read remaining from global, but it's same
-          if (remainingSeconds <= 0 && !isDestroyed) {
-            executeBurn();
-          }
-        }
+    let intervalId = setInterval(() => {
+      if (isDestroyed) {
+        if (intervalId) clearInterval(intervalId);
+        return;
       }
-    });
+      if (remainingSeconds <= 1) {
+        clearInterval(intervalId);
+        executeBurn();
+        return;
+      }
+      remainingSeconds--;
+      if (timerSpan) timerSpan.textContent = `${remainingSeconds}s`;
+      const percent = (remainingSeconds / duration) * 100;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+      if (remainingSeconds <= 2 && fireOverlay) fireOverlay.style.opacity = '0.4';
+    }, 1000);
     
-    // final safety: if by any glitch extension sends ttl=0, immediately burn
-    if (duration <= 0) {
-      executeBurn();
-    }
-    
-    // Additionally: remove any "loading" flicker - we already filled noteContent synchronously
-    // also disable any right click context if required (optional cleanliness)
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    if (duration <= 0) executeBurn();
   })();
 </script>
 </body>
