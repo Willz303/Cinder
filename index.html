@@ -138,6 +138,7 @@
     let remaining = ttl;
     let burned = false;
 
+    // IMMEDIATELY show note (no loading stuck)
     noteEl.textContent = note;
     timerEl.textContent = remaining + 's';
     barEl.style.width = '100%';
@@ -151,11 +152,9 @@
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // BULLETPROOF ANTI-REFRESH
-        localStorage.setItem('cinderBurned', 'true');
+        // SIMPLIFIED ANTI-REFRESH: Just clear URL
         history.replaceState(null, null, window.location.pathname);
         
-        // Burn visuals
         burnOverlayEl.style.opacity = '1';
         noteEl.style.opacity = '0';
         
