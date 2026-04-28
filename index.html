@@ -99,9 +99,6 @@
       0% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); opacity: 0.9; }
       100% { transform: translateY(-150px) translateX(80px) rotate(1080deg) scale(0); opacity: 0; }
     }
-    .burned-empty {
-      display: none !important;
-    }
   </style>
 </head>
 <body>
@@ -117,12 +114,6 @@
   </div>
 
   <script>
-    // ANTI-REFRESH PROTECTION #1: Check burned flag first
-    if (localStorage.getItem('cinderBurned') === 'true') {
-      document.body.innerHTML = '';
-      return;
-    }
-
     const params = new URLSearchParams(location.hash.slice(1));
     const noteEl = document.getElementById('note');
     const timerEl = document.getElementById('timer');
@@ -145,6 +136,7 @@
     }
 
     let remaining = ttl;
+    let burned = false;
 
     noteEl.textContent = note;
     timerEl.textContent = remaining + 's';
@@ -153,16 +145,17 @@
     const interval = setInterval(() => {
       remaining--;
 
-      if (remaining <= 0) {
+      if (remaining <= 0 && !burned) {
+        burned = true;
         clearInterval(interval);
         barEl.style.width = '0%';
         barEl.classList.add('low');
         
-        // ANTI-REFRESH PROTECTION #2: Mark as burned + clear URL
+        // BULLETPROOF ANTI-REFRESH
         localStorage.setItem('cinderBurned', 'true');
         history.replaceState(null, null, window.location.pathname);
         
-        // Visual burn sequence
+        // Burn visuals
         burnOverlayEl.style.opacity = '1';
         noteEl.style.opacity = '0';
         
@@ -178,13 +171,11 @@
         setTimeout(() => {
           cardEl.classList.add('burned');
         }, 400);
-        
-        return;
+      } else if (remaining > 0) {
+        timerEl.textContent = remaining + 's';
+        barEl.style.width = (remaining / ttl * 100) + '%';
+        if (remaining <= 2) barEl.classList.add('low');
       }
-
-      timerEl.textContent = remaining + 's';
-      barEl.style.width = (remaining / ttl * 100) + '%';
-      if (remaining <= 2) barEl.classList.add('low');
     }, 1000);
   </script>
 </body>
